@@ -2,6 +2,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import path from 'path';
 
 const NavBar: React.FC = () => {
   const pathname = usePathname();
@@ -13,11 +14,12 @@ const NavBar: React.FC = () => {
 
   const activeTab = getActiveTab();
 
-  return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-md mx-auto">
-        <div className="flex">
-          <Link 
+  if (pathname !== "/") {
+    return (
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-md mx-auto">
+          <div className="flex">
+            <Link 
             href="/upload"
             className={`flex-1 text-center py-3 px-4 font-medium text-sm transition-colors ${
               activeTab === 'upload'
@@ -41,6 +43,8 @@ const NavBar: React.FC = () => {
       </div>
     </nav>
   );
+  }
+
 };
 
 export default NavBar;
