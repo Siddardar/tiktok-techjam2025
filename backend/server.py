@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify
-import os
-from werkzeug.utils import secure_filename
-import uuid
-from detect_sens import is_document_sensitive
-from PIL import Image
 import numpy as np
+
+from face_recog import detect_face
+from sens_text import is_sensitive_text
 
 app = Flask(__name__)
 
@@ -40,11 +38,13 @@ def upload_image():
         
         if file:
             file_bytes = np.frombuffer(file.read(), np.uint8)
-            sensitive = is_document_sensitive(file_bytes)
-            
+            print(f"Received file: {file.filename}, Size: {len(file_bytes)} bytes")
+
+            face_pixels = detect_face(file_bytes)
+
             return jsonify({
-                'success': True,
-                'sensitive': sensitive,
+                'sensitive': bool(face_pixels or is_sensitive_text(file_bytes)),
+                'pixels': face_pixels
             }), 200
             
     except Exception as e:
