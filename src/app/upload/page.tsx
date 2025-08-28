@@ -1,13 +1,12 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PhotoFile } from '@/components/photo-preview';
 import PhotoPreviewPopup from '@/components/photo-preview';
 import UploadZone from '@/components/upload-zone';
 
 const UploadPage: React.FC = () => {
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const handleFileSelect = (files: FileList) => {
     const validFiles = Array.from(files).filter(file => {
@@ -26,28 +25,51 @@ const UploadPage: React.FC = () => {
 
     if (newPhotos.length > 0) {
       console.log("Valid photos selected:");
-      setPhotos(newPhotos);
-      setCurrentPhotoIndex(0);
-      setShowPreview(true);
+      setPhotos(prevPhotos => [...prevPhotos, ...newPhotos]);
     } else {
       console.log('No valid image files selected');
     }
   };
 
+  // Scroll to preview when photos are added
+  useEffect(() => {
+    if (photos.length > 0) {
+      // Use setTimeout to ensure the DOM is updated
+      setTimeout(() => {
+        if (previewRef.current) {
+          previewRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        } else {
+          // Fallback scroll method
+          window.scrollBy({
+            top: window.innerHeight * 0.8,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [photos.length]); // Only trigger when photos array length changes
+
   const handleClosePreview = () => {
-    setShowPreview(false);
     // Clean up object URLs
-    console.log("hi")
     photos.forEach(photo => URL.revokeObjectURL(photo.preview));
     setPhotos([]);
   };
 
-  const handlePrevious = () => {
-    setCurrentPhotoIndex(prev => Math.max(0, prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentPhotoIndex(prev => Math.min(photos.length - 1, prev + 1));
+  const handleDelete = (id: string) => {
+    setPhotos(prevPhotos => {
+      const filteredPhotos = prevPhotos.filter(photo => photo.id !== id);
+      
+      // Clean up the URL for the deleted photo
+      const photoToDelete = prevPhotos.find(photo => photo.id === id);
+      if (photoToDelete) {
+        URL.revokeObjectURL(photoToDelete.preview);
+      }
+      
+      return filteredPhotos;
+    });
   };
 
   const handleProcess = () => {
@@ -61,15 +83,14 @@ const UploadPage: React.FC = () => {
         <UploadZone onFileSelect={handleFileSelect} />
       </div>
 
-      {showPreview && (
-        <PhotoPreviewPopup
-          photos={photos}
-          currentIndex={currentPhotoIndex}
-          onClose={handleClosePreview}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-          onProcess={handleProcess}
-        />
+      {photos.length > 0 && (
+        <div ref={previewRef}>
+          <PhotoPreviewPopup
+            photos={photos}
+            onDelete={handleDelete}
+            onProcess={handleProcess}
+          />
+        </div>
       )}
     </div>
   );
